@@ -9,8 +9,8 @@ export const DIContainerContext = createContext<DIContainer | null>(null);
 export const useTranscription = () => {
   const [results, setResults] = useState<TranscriptionResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string>('whisper');
+  const [error, setError] = useState<any | null>(null);
+  const [selectedService, setSelectedService] = useState<string>('');
 
   const container = useContext(DIContainerContext);
   const { handleError } = useErrorHandler();
@@ -19,25 +19,55 @@ export const useTranscription = () => {
     throw new Error('useTranscription must be used within a DIContainerProvider');
   }
 
+  // 選択されたサービスが空の場合、利用可能な最初のサービスを設定
+  const availableServices = container.getAvailableServices();
+  if (!selectedService && availableServices.length > 0) {
+    setSelectedService(availableServices[0].name);
+  }
+
   const transcribe = useCallback(async (audioFile: AudioFile, serviceName?: string): Promise<TranscriptionResult> => {
     const serviceToUse = serviceName || selectedService;
+    
+    console.log('[useTranscription] Starting transcription', {
+      audioFile: {
+        name: audioFile.file.name,
+        size: audioFile.size,
+        format: audioFile.format,
+        isValid: audioFile.isValid
+      },
+      serviceToUse,
+      selectedService,
+      availableServices: availableServices.map(s => s.name)
+    });
+
+    if (!serviceToUse) {
+      const error = 'No transcription service selected';
+      console.error('[useTranscription]', error);
+      setError(error);
+      throw new Error(error);
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
+      console.log('[useTranscription] Getting service:', serviceToUse);
       const service = container.getService(serviceToUse);
+      console.log('[useTranscription] Service obtained, starting transcription');
+      
       const result = await service.transcribe(audioFile);
+      console.log('[useTranscription] Transcription completed successfully');
       
       setResults(prev => [...prev, result]);
       return result;
     } catch (err) {
-      const errorInfo = handleError(err);
-      setError(errorInfo.message);
+      console.error('[useTranscription] Transcription failed:', err);
+      setError(err);
       throw err;
     } finally {
       setIsProcessing(false);
     }
-  }, [container, selectedService, handleError]);
+  }, [container, selectedService, handleError, availableServices]);
 
   const transcribeWithMultipleServices = useCallback(async (
     audioFile: AudioFile, 
@@ -81,8 +111,7 @@ export const useTranscription = () => {
       setResults(prev => [...prev, ...successfulResults]);
       return successfulResults;
     } catch (err) {
-      const errorInfo = handleError(err);
-      setError(errorInfo.message);
+      setError(err);
       throw err;
     } finally {
       setIsProcessing(false);

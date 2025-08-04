@@ -35,6 +35,14 @@ const AppContent: React.FC = () => {
   const availableServices = container.getAvailableServices();
   const { selectService } = useServiceSelector(availableServices);
 
+  // デバッグログ: 利用可能なサービスと選択されたサービスを確認
+  console.log('[App] Available services:', availableServices.map(s => ({ 
+    name: s.name, 
+    displayName: s.config.displayName,
+    hasApiKey: !!s.config.apiKey 
+  })));
+  console.log('[App] Selected service:', selectedService);
+
   const [currentView, setCurrentView] = useState<'upload' | 'results' | 'comparison'>('upload');
 
   const handleServiceChange = (serviceName: string) => {
@@ -148,7 +156,7 @@ const AppContent: React.FC = () => {
                   />
 
                   {transcriptionError && (
-                    <ErrorMessage message={transcriptionError} />
+                    <ErrorMessage error={transcriptionError} />
                   )}
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">

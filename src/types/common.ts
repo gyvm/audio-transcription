@@ -19,3 +19,24 @@ export interface AppConfig {
   supportedFormats: string[];
   apiEndpoints: Record<ServiceType, string>;
 }
+
+export class ApiError extends Error {
+  public request?: {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body?: any;
+  };
+  public response?: {
+    status: number;
+    statusText: string;
+    body?: any;
+  };
+
+  constructor(message: string, details?: { request?: any; response?: any }) {
+    super(message);
+    this.name = 'ApiError';
+    this.request = details?.request;
+    this.response = details?.response;
+  }
+}

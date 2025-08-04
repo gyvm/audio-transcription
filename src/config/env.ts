@@ -1,5 +1,6 @@
 interface EnvConfig {
   openaiApiKey: string;
+  amivoiceApiKey: string;
   appName: string;
   maxFileSizeMB: number;
   maxDurationMinutes: number;
@@ -29,6 +30,7 @@ const getEnvBoolean = (key: string, defaultValue: boolean): boolean => {
 
 export const env: EnvConfig = {
   openaiApiKey: getEnvVar('VITE_OPENAI_API_KEY'),
+  amivoiceApiKey: getEnvVar('VITE_AMIVOICE_API_KEY'),
   appName: getEnvVar('VITE_APP_NAME', '音声文字起こしサービス'),
   maxFileSizeMB: getEnvNumber('VITE_MAX_FILE_SIZE_MB', 10),
   maxDurationMinutes: getEnvNumber('VITE_MAX_DURATION_MINUTES', 10),

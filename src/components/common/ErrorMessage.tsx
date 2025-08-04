@@ -1,16 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ApiError } from '../../types/common';
 
 interface ErrorMessageProps {
-  message: string;
+  error: any; // string | Error | ApiError | null
   onDismiss?: () => void;
   className?: string;
 }
 
+const isApiError = (error: any): error is ApiError => {
+  return error instanceof ApiError || (error && error.name === 'ApiError');
+};
+
+const JsonViewer: React.FC<{ data: any }> = ({ data }) => {
+  if (!data) return null;
+  try {
+    const formattedJson = JSON.stringify(data, null, 2);
+    return (
+      <pre className="text-xs bg-gray-800 text-white p-2 rounded-md overflow-x-auto">
+        <code>{formattedJson}</code>
+      </pre>
+    );
+  } catch {
+    return <p className="text-xs text-red-500">Could not serialize error data.</p>;
+  }
+};
+
 export const ErrorMessage: React.FC<ErrorMessageProps> = ({
-  message,
+  error,
   onDismiss,
   className = '',
 }) => {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  if (!error) return null;
+
+  const message = error.message || 'An unexpected error occurred.';
+  const showDetailsButton = isApiError(error) && (error.request || error.response);
+
   return (
     <div className={`bg-red-50 border border-red-200 rounded-md p-4 ${className}`}>
       <div className="flex items-start">
@@ -29,7 +55,17 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           </svg>
         </div>
         <div className="ml-3 flex-1">
-          <p className="text-sm text-red-800">{message}</p>
+          <p className="text-sm font-medium text-red-800">{message}</p>
+          {showDetailsButton && (
+            <div className="mt-2">
+              <button
+                onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+                className="text-sm text-red-700 hover:text-red-800 font-medium"
+              >
+                {isDetailsOpen ? '詳細を隠す' : '詳細を表示'}
+              </button>
+            </div>
+          )}
         </div>
         {onDismiss && (
           <div className="ml-auto pl-3">
@@ -48,6 +84,24 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           </div>
         )}
       </div>
+
+      {showDetailsButton && isDetailsOpen && (
+        <div className="mt-4 pl-8">
+          <h3 className="text-sm font-bold text-red-900">デバッグ情報</h3>
+          {isApiError(error) && error.request && (
+            <div className="mt-2">
+              <h4 className="text-xs font-semibold text-gray-700">Request:</h4>
+              <JsonViewer data={error.request} />
+            </div>
+          )}
+          {isApiError(error) && error.response && (
+            <div className="mt-2">
+              <h4 className="text-xs font-semibold text-gray-700">Response:</h4>
+              <JsonViewer data={error.response} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
