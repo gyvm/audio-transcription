@@ -31,7 +31,7 @@ export class AmiVoiceSyncService extends TranscriptionService {
 
     try {
       // ファイルの長さをチェック
-      if (audioFile.duration > this.audioLengthLimitSec) {
+      if (audioFile.duration && audioFile.duration > this.audioLengthLimitSec) {
         throw new Error(`AmiVoice (同期) は${this.audioLengthLimitSec}秒以下の音声ファイルのみ対応しています。`);
       }
       

@@ -21,18 +21,27 @@ export const useAudioUpload = (config: AudioProcessingConfig = defaultConfig) =>
   const processor = new AudioProcessor();
 
   const validateAndProcessFile = useCallback(async (file: File): Promise<AudioFile> => {
+    console.log('[validateAndProcessFile] Starting validation for:', file.name);
+    
     if (!AudioUtils.isAudioFile(file)) {
       throw new Error('選択されたファイルは音声ファイルではありません');
     }
 
+    console.log('[validateAndProcessFile] Audio file check passed');
+    
     const audioFileInfo = validator.validateAudioFile(file);
+    console.log('[validateAndProcessFile] Validation result:', audioFileInfo);
     
     if (!audioFileInfo.isValid) {
-      throw new Error(audioFileInfo.validationErrors?.join(', ') || 'Invalid file');
+      const errorMsg = audioFileInfo.validationErrors?.join(', ') || 'Invalid file';
+      console.error('[validateAndProcessFile] Validation failed:', errorMsg);
+      throw new Error(errorMsg);
     }
 
     try {
+      console.log('[validateAndProcessFile] Starting audio processing');
       const enhancedFile = await processor.enhanceAudioFile(audioFileInfo);
+      console.log('[validateAndProcessFile] Processing result:', enhancedFile);
       
       if (enhancedFile.duration && !AudioUtils.validateAudioDuration(enhancedFile.duration, config.maxDurationSeconds)) {
         const maxMinutes = Math.floor(config.maxDurationSeconds / 60);
@@ -41,10 +50,11 @@ export const useAudioUpload = (config: AudioProcessingConfig = defaultConfig) =>
 
       return enhancedFile;
     } catch (error) {
+      console.error('[validateAndProcessFile] Processing error:', error);
       if (error instanceof Error && error.message.includes('音声の長さ')) {
         throw error;
       }
-      console.warn('Could not enhance audio file:', error);
+      console.warn('[validateAndProcessFile] Could not enhance audio file, using basic info:', error);
       return audioFileInfo;
     }
   }, [validator, processor, config]);
@@ -54,9 +64,18 @@ export const useAudioUpload = (config: AudioProcessingConfig = defaultConfig) =>
     setIsProcessing(true);
     
     try {
+      console.log('[useAudioUpload] Processing file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
       const processedFile = await validateAndProcessFile(file);
       setAudioFile(processedFile);
+      
+      console.log('[useAudioUpload] File processed successfully:', processedFile);
     } catch (error) {
+      console.error('[useAudioUpload] File processing error:', error);
       const errorMessage = error instanceof Error ? error.message : 'ファイルの処理中にエラーが発生しました';
       setUploadError(errorMessage);
       setAudioFile(null);

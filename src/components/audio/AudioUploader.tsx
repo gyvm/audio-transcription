@@ -116,7 +116,7 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({
       
       {error && (
         <div className="mt-4">
-          <ErrorMessage message={error} />
+          <ErrorMessage error={error} />
         </div>
       )}
     </div>
