@@ -50,4 +50,14 @@ export class DIContainer implements DIContainerInterface {
     const newInstance = new ServiceClass(updatedConfig);
     this.services.set(name, newInstance);
   }
+
+  hasService(name: string): boolean {
+    return this.services.has(name);
+  }
+
+  clearServices(): void {
+    this.services.clear();
+    this.serviceConfigs.clear();
+    this.serviceConstructors.clear();
+  }
 }

@@ -3,6 +3,7 @@ import { MainLayout } from './components/layout';
 import { AudioUploader, AudioPreview, FileValidation } from './components/audio';
 import { ServiceSelector, TranscriptionResult, ComparisonView } from './components/transcription';
 import { Button, LoadingSpinner, ErrorMessage } from './components/common';
+import { SettingsModal } from './components/settings';
 import { useAudioUpload, useTranscription, useServiceSelector, DIContainerContext } from './hooks';
 import { ServiceRegistry } from './services/di/ServiceRegistry';
 
@@ -10,6 +11,8 @@ const serviceRegistry = new ServiceRegistry();
 const container = serviceRegistry.getContainer();
 
 const AppContent: React.FC = () => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
   const {
     audioFile,
     isDragOver,
@@ -20,6 +23,7 @@ const AppContent: React.FC = () => {
     clearFile,
     getFileInfo,
   } = useAudioUpload();
+
 
   const {
     results,
@@ -46,6 +50,16 @@ const AppContent: React.FC = () => {
 
   const handleServiceToggle = (serviceName: string) => {
     toggleService(serviceName);
+  };
+
+  const handleSettingsUpdated = async () => {
+    try {
+      // ServiceRegistryのAPIキー設定を更新
+      await serviceRegistry.updateServiceConfigs();
+      console.log('Service configurations updated successfully');
+    } catch (error) {
+      console.error('Failed to update service configurations:', error);
+    }
   };
 
   const handleTranscribe = async () => {
@@ -99,15 +113,25 @@ const AppContent: React.FC = () => {
             </Button>
           </div>
           
-          {results.length > 0 && (
+          <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
-              onClick={clearResults}
-              className="text-red-600 hover:text-red-700"
+              onClick={() => setIsSettingsOpen(true)}
+              className="text-gray-600 hover:text-gray-700"
             >
-              全て削除
+              ⚙️
             </Button>
-          )}
+            
+            {results.length > 0 && (
+              <Button
+                variant="ghost"
+                onClick={clearResults}
+                className="text-red-600 hover:text-red-700"
+              >
+                全て削除
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* アップロードビュー */}
@@ -241,6 +265,13 @@ const AppContent: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 設定モーダル */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSettingsUpdated={handleSettingsUpdated}
+      />
     </MainLayout>
   );
 };
