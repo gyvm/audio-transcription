@@ -1,0 +1,1 @@
+export { ResultStorageManager } from './ResultStorageManager';

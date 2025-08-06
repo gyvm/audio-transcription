@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../common';
 import { useAPIKeyManager } from '../../hooks';
 import { APIKeySection } from './APIKeySection';
+import { StorageSection } from './StorageSection';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -80,6 +81,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               APIキー管理
             </h3>
             <APIKeySection />
+          </div>
+
+          {/* ストレージ管理セクション */}
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              解析結果の保存
+            </h3>
+            <StorageSection />
           </div>
 
           {/* 危険操作セクション */}

@@ -1,13 +1,15 @@
-import { useState, useCallback, useContext, createContext } from 'react';
+import { useState, useCallback, useContext, createContext, useEffect } from 'react';
 import type { TranscriptionResult } from '../types/transcription';
 import type { AudioFile } from '../types/audio';
 import { DIContainer } from '../services/di/Container';
 import { useErrorHandler } from './useErrorHandler';
+import { ResultStorageManager } from '../services/storage';
 
 export const DIContainerContext = createContext<DIContainer | null>(null);
 
 export const useTranscription = () => {
   const [results, setResults] = useState<TranscriptionResult[]>([]);
+  const [storageManager] = useState(() => new ResultStorageManager());
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<any | null>(null);
   const [selectedService, setSelectedService] = useState<string>('');
@@ -18,6 +20,34 @@ export const useTranscription = () => {
   if (!container) {
     throw new Error('useTranscription must be used within a DIContainerProvider');
   }
+
+  // 初期化時にストレージから結果を読み込み
+  useEffect(() => {
+    const loadStoredResults = () => {
+      try {
+        const storedResults = storageManager.loadResults();
+        if (storedResults.length > 0) {
+          setResults(storedResults);
+          console.log(`Loaded ${storedResults.length} results from storage`);
+        }
+      } catch (error) {
+        console.error('Failed to load stored results:', error);
+      }
+    };
+
+    loadStoredResults();
+  }, [storageManager]);
+
+  // 結果が変更された時にストレージに保存
+  useEffect(() => {
+    if (results.length > 0) {
+      try {
+        storageManager.saveResults(results);
+      } catch (error) {
+        console.error('Failed to save results to storage:', error);
+      }
+    }
+  }, [results, storageManager]);
 
   // 選択されたサービスが空の場合、利用可能な最初のサービスを設定
   const availableServices = container.getAvailableServices();
@@ -121,11 +151,25 @@ export const useTranscription = () => {
   const clearResults = useCallback(() => {
     setResults([]);
     setError(null);
-  }, []);
+    try {
+      storageManager.clearResults();
+      console.log('Cleared all results from storage');
+    } catch (error) {
+      console.error('Failed to clear results from storage:', error);
+    }
+  }, [storageManager]);
 
   const removeResult = useCallback((id: string) => {
-    setResults(prev => prev.filter(result => result.id !== id));
-  }, []);
+    try {
+      const updatedResults = storageManager.removeResult(id);
+      setResults(updatedResults);
+      console.log(`Removed result ${id} from storage`);
+    } catch (error) {
+      console.error('Failed to remove result from storage:', error);
+      // フォールバック：メモリ上のみ削除
+      setResults(prev => prev.filter(result => result.id !== id));
+    }
+  }, [storageManager]);
 
   const getResultsByService = useCallback((serviceName: string) => {
     return results.filter(result => result.serviceName === serviceName);
