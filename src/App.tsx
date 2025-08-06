@@ -25,15 +25,14 @@ const AppContent: React.FC = () => {
     results,
     isProcessing: isTranscribing,
     error: transcriptionError,
-    selectedService,
-    setSelectedService,
     transcribe,
+    transcribeWithMultipleServices,
     clearResults,
     removeResult,
   } = useTranscription();
 
   const availableServices = container.getAvailableServices();
-  const { selectService } = useServiceSelector(availableServices);
+  const { selectedServices, toggleService } = useServiceSelector(availableServices);
 
   // デバッグログ: 利用可能なサービスと選択されたサービスを確認
   console.log('[App] Available services:', availableServices.map(s => ({ 
@@ -41,20 +40,26 @@ const AppContent: React.FC = () => {
     displayName: s.config.displayName,
     hasApiKey: !!s.config.apiKey 
   })));
-  console.log('[App] Selected service:', selectedService);
+  console.log('[App] Selected services:', selectedServices);
 
   const [currentView, setCurrentView] = useState<'upload' | 'results' | 'comparison'>('upload');
 
-  const handleServiceChange = (serviceName: string) => {
-    setSelectedService(serviceName);
-    selectService(serviceName);
+  const handleServiceToggle = (serviceName: string) => {
+    toggleService(serviceName);
   };
 
   const handleTranscribe = async () => {
     if (!audioFile || !audioFile.isValid) return;
+    if (selectedServices.length === 0) return;
 
     try {
-      await transcribe(audioFile);
+      if (selectedServices.length === 1) {
+        // 単一サービスの場合は従来の処理
+        await transcribe(audioFile, selectedServices[0]);
+      } else {
+        // 複数サービスの場合は同時実行
+        await transcribeWithMultipleServices(audioFile, selectedServices);
+      }
       setCurrentView('results');
     } catch (error) {
       console.error('Transcription failed:', error);
@@ -150,8 +155,8 @@ const AppContent: React.FC = () => {
                 <div className="space-y-4">
                   <ServiceSelector
                     availableServices={availableServices}
-                    selectedService={selectedService}
-                    onServiceSelect={handleServiceChange}
+                    selectedServices={selectedServices}
+                    onServiceToggle={handleServiceToggle}
                     disabled={isTranscribing}
                   />
 
@@ -171,16 +176,16 @@ const AppContent: React.FC = () => {
                     
                     <Button
                       onClick={handleTranscribe}
-                      disabled={isTranscribing || !audioFile.isValid}
+                      disabled={isTranscribing || !audioFile.isValid || selectedServices.length === 0}
                       className="min-w-[120px]"
                     >
                       {isTranscribing ? (
                         <div className="flex items-center">
                           <LoadingSpinner size="sm" className="mr-2" />
-                          処理中...
+                          {selectedServices.length > 1 ? '複数サービスで処理中...' : '処理中...'}
                         </div>
                       ) : (
-                        '文字起こし開始'
+                        selectedServices.length > 1 ? '複数サービスで文字起こし開始' : '文字起こし開始'
                       )}
                     </Button>
                   </div>

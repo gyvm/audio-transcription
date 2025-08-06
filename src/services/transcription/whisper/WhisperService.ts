@@ -8,6 +8,9 @@ export class WhisperService extends TranscriptionService {
   async transcribe(audioFile: AudioFile): Promise<TranscriptionResult> {
     this.validateFile(audioFile);
 
+    let requestData: Record<string, unknown> = {};
+    let responseData: WhisperApiResponse | undefined;
+
     const { result, time } = await this.measureProcessingTime(async () => {
       const formData = new FormData();
       formData.append('file', audioFile.file);
@@ -18,6 +21,22 @@ export class WhisperService extends TranscriptionService {
       if (this.config.supportsSpeakerDiarization) {
         formData.append('speaker_diarization', 'true');
       }
+
+      requestData = {
+        endpoint: this.config.endpoint,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.apiKey.substring(0, 10)}...`,
+        },
+        body: {
+          filename: audioFile.file.name,
+          fileSize: audioFile.file.size,
+          model: WHISPER_MODELS.WHISPER_1,
+          response_format: WHISPER_RESPONSE_FORMATS.VERBOSE_JSON,
+          timestamp_granularities: ['segment'],
+          speaker_diarization: this.config.supportsSpeakerDiarization,
+        }
+      };
 
       const response = await fetch(this.config.endpoint, {
         method: 'POST',
@@ -32,13 +51,14 @@ export class WhisperService extends TranscriptionService {
         throw new Error(`Whisper API error (${response.status}): ${errorText}`);
       }
 
-      return await response.json() as WhisperApiResponse;
+      responseData = await response.json() as WhisperApiResponse;
+      return responseData;
     });
 
-    return this.formatResult(result, time, audioFile);
+    return this.formatResult(result, time, audioFile, requestData, responseData);
   }
 
-  private formatResult(apiResponse: WhisperApiResponse, processingTime: number, audioFile: AudioFile): TranscriptionResult {
+  private formatResult(apiResponse: WhisperApiResponse, processingTime: number, audioFile: AudioFile, requestData?: Record<string, unknown>, responseData?: WhisperApiResponse): TranscriptionResult {
     const segments: TextSegment[] = apiResponse.segments?.map((segment: WhisperApiSegment) => ({
       text: segment.text,
       startTime: segment.start,
@@ -63,6 +83,8 @@ export class WhisperService extends TranscriptionService {
         model: WHISPER_MODELS.WHISPER_1,
         apiVersion: 'v1',
       },
+      requestData,
+      responseData,
     };
   }
 

@@ -34,9 +34,26 @@ export class AmiVoiceService extends TranscriptionService {
       isValid: audioFile.isValid
     });
 
+    let requestData: Record<string, unknown> = {};
+    let responseData: AmiVoiceResponse;
+
     try {
       this.validateFile(audioFile);
       console.log('[AmiVoice] File validation passed');
+
+      requestData = {
+        endpoint: this.baseUrl,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.apiKey.substring(0, 10)}...`
+        },
+        body: {
+          filename: audioFile.file.name,
+          fileSize: audioFile.file.size,
+          options: this.buildOptionsString(),
+        },
+        processingType: 'async-polling'
+      };
 
       const { result: sessionId, time: uploadTime } = await this.measureProcessingTime(
         () => this.uploadAudio(audioFile)
@@ -48,7 +65,8 @@ export class AmiVoiceService extends TranscriptionService {
       );
       console.log('[AmiVoice] Processing completed', { processingTime, response });
 
-      const result = this.convertToTranscriptionResult(response, uploadTime + processingTime);
+      responseData = response;
+      const result = this.convertToTranscriptionResult(response, uploadTime + processingTime, requestData, responseData);
       console.log('[AmiVoice] Transcription result created', {
         resultId: result.id,
         textLength: result.text.length,
@@ -201,7 +219,9 @@ export class AmiVoiceService extends TranscriptionService {
 
   private convertToTranscriptionResult(
     response: AmiVoiceResponse, 
-    processingTime: number
+    processingTime: number,
+    requestData?: Record<string, unknown>,
+    responseData?: AmiVoiceResponse
   ): TranscriptionResult {
     const speakers = new Map<string, Speaker>();
     const segments: TextSegment[] = [];
@@ -250,6 +270,8 @@ export class AmiVoiceService extends TranscriptionService {
         model: 'amivoice-general',
         apiVersion: 'v2',
       },
+      requestData,
+      responseData,
     };
   }
 

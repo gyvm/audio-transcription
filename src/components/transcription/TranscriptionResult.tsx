@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { TranscriptionResult as TranscriptionResultType } from '../../types/transcription';
-import { Button } from '../common';
+import { Button, TabView, JSONDataViewer } from '../common';
 import { SpeakerSegment } from './SpeakerSegment';
 
 interface TranscriptionResultProps {
@@ -95,76 +95,100 @@ export const TranscriptionResult: React.FC<TranscriptionResultProps> = ({
 
         {/* 詳細情報 */}
         {isExpanded && (
-          <div className="space-y-6">
-            {/* 話者別セグメント */}
-            {result.speakers && result.speakers.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
-                  話者別セグメント
-                </h4>
-                <div className="space-y-4">
-                  {result.speakers.map(speaker => (
-                    <SpeakerSegment
-                      key={speaker.id}
-                      speaker={speaker}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* メタデータ */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">メタデータ</h4>
-              <div className="bg-gray-50 rounded-md p-4">
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <div>
-                    <dt className="font-medium text-gray-500">音声長:</dt>
-                    <dd className="text-gray-900">
-                      {result.metadata?.audioLength ? 
-                        `${Math.round(result.metadata.audioLength)}秒` : 
-                        '不明'
-                      }
-                    </dd>
-                  </div>
-                  
-                  <div>
-                    <dt className="font-medium text-gray-500">処理日時:</dt>
-                    <dd className="text-gray-900">
-                      {result.timestamp.toLocaleString('ja-JP')}
-                    </dd>
-                  </div>
-                  
-                  <div>
-                    <dt className="font-medium text-gray-500">言語:</dt>
-                    <dd className="text-gray-900">
-                      {result.metadata?.language || '不明'}
-                    </dd>
-                  </div>
-                  
-                  <div>
-                    <dt className="font-medium text-gray-500">音声形式:</dt>
-                    <dd className="text-gray-900">
-                      {result.metadata?.audioFormat?.toUpperCase() || '不明'}
-                    </dd>
-                  </div>
-                  
-                  {result.metadata?.model && (
-                    <div>
-                      <dt className="font-medium text-gray-500">モデル:</dt>
-                      <dd className="text-gray-900">{result.metadata.model}</dd>
+          <div>
+            <TabView
+              tabs={[
+                {
+                  id: 'metadata',
+                  label: 'メタデータ',
+                  content: (
+                    <div className="bg-gray-50 rounded-md p-4">
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <div>
+                          <dt className="font-medium text-gray-500">音声長:</dt>
+                          <dd className="text-gray-900">
+                            {result.metadata?.audioLength ? 
+                              `${Math.round(result.metadata.audioLength)}秒` : 
+                              '不明'
+                            }
+                          </dd>
+                        </div>
+                        
+                        <div>
+                          <dt className="font-medium text-gray-500">処理日時:</dt>
+                          <dd className="text-gray-900">
+                            {result.timestamp.toLocaleString('ja-JP')}
+                          </dd>
+                        </div>
+                        
+                        <div>
+                          <dt className="font-medium text-gray-500">言語:</dt>
+                          <dd className="text-gray-900">
+                            {result.metadata?.language || '不明'}
+                          </dd>
+                        </div>
+                        
+                        <div>
+                          <dt className="font-medium text-gray-500">音声形式:</dt>
+                          <dd className="text-gray-900">
+                            {result.metadata?.audioFormat?.toUpperCase() || '不明'}
+                          </dd>
+                        </div>
+                        
+                        {result.metadata?.model && (
+                          <div>
+                            <dt className="font-medium text-gray-500">モデル:</dt>
+                            <dd className="text-gray-900">{result.metadata.model}</dd>
+                          </div>
+                        )}
+                        
+                        {result.metadata?.apiVersion && (
+                          <div>
+                            <dt className="font-medium text-gray-500">APIバージョン:</dt>
+                            <dd className="text-gray-900">{result.metadata.apiVersion}</dd>
+                          </div>
+                        )}
+                      </dl>
                     </div>
-                  )}
-                  
-                  {result.metadata?.apiVersion && (
-                    <div>
-                      <dt className="font-medium text-gray-500">APIバージョン:</dt>
-                      <dd className="text-gray-900">{result.metadata.apiVersion}</dd>
+                  )
+                },
+                ...(result.speakers && result.speakers.length > 0 ? [{
+                  id: 'speakers',
+                  label: '話者別セグメント',
+                  content: (
+                    <div className="space-y-4">
+                      {result.speakers.map(speaker => (
+                        <SpeakerSegment
+                          key={speaker.id}
+                          speaker={speaker}
+                        />
+                      ))}
                     </div>
-                  )}
-                </dl>
-              </div>
-            </div>
+                  )
+                }] : []),
+                ...(result.requestData || result.responseData ? [{
+                  id: 'api-data',
+                  label: 'APIデータ',
+                  content: (
+                    <div className="space-y-6">
+                      {result.requestData ? (
+                        <JSONDataViewer
+                          data={result.requestData}
+                          title="リクエストデータ"
+                        />
+                      ) : null}
+                      {result.responseData ? (
+                        <JSONDataViewer
+                          data={result.responseData}
+                          title="レスポンスデータ"
+                        />
+                      ) : null}
+                    </div>
+                  )
+                }] : [])
+              ]}
+              defaultTab="metadata"
+            />
           </div>
         )}
       </div>

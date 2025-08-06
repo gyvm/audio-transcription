@@ -7,6 +7,8 @@ export interface TranscriptionResult {
   processingTime: number;
   timestamp: Date;
   metadata?: TranscriptionMetadata;
+  requestData?: unknown;
+  responseData?: unknown;
 }
 
 export interface Speaker {
