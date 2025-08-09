@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainLayout } from './components/layout';
 import { AudioUploader, AudioPreview, FileValidation } from './components/audio';
 import { ServiceSelector, TranscriptionResult, ComparisonView } from './components/transcription';
@@ -6,12 +6,16 @@ import { Button, LoadingSpinner, ErrorMessage } from './components/common';
 import { SettingsModal } from './components/settings';
 import { useAudioUpload, useTranscription, useServiceSelector, DIContainerContext } from './hooks';
 import { ServiceRegistry } from './services/di/ServiceRegistry';
+import type { ServiceConfig } from './types/transcription';
 
+console.log('[App] Creating ServiceRegistry...');
 const serviceRegistry = new ServiceRegistry();
 const container = serviceRegistry.getContainer();
+console.log('[App] ServiceRegistry created, container initialized');
 
 const AppContent: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [availableServices, setAvailableServices] = useState<Array<{ name: string; config: ServiceConfig }>>([]);
   
   const {
     audioFile,
@@ -35,14 +39,39 @@ const AppContent: React.FC = () => {
     removeResult,
   } = useTranscription();
 
-  const availableServices = container.getAvailableServices();
   const { selectedServices, toggleService } = useServiceSelector(availableServices);
 
+  // 利用可能なサービスを取得する関数
+  const fetchAvailableServices = async () => {
+    // サービス登録の初期化を待つ
+    await serviceRegistry.waitForInitialization();
+    
+    // ユーザーAPIキーでサービス設定を更新
+    console.log('[App] Updating service configs with user API keys...');
+    await serviceRegistry.updateServiceConfigs();
+    
+    const services = container.getAvailableServices();
+    setAvailableServices(services);
+    console.log('[App] Fetched available services:', services.map(s => ({ 
+      name: s.name, 
+      displayName: s.config.displayName,
+      hasApiKey: !!s.config.apiKey 
+    })));
+    return services;
+  };
+
+  // コンポーネントマウント時にサービスを取得
+  useEffect(() => {
+    fetchAvailableServices().catch(console.error);
+  }, []);
+
   // デバッグログ: 利用可能なサービスと選択されたサービスを確認
-  console.log('[App] Available services:', availableServices.map(s => ({ 
+  console.log('[App] Available services details:', availableServices.map(s => ({ 
     name: s.name, 
     displayName: s.config.displayName,
-    hasApiKey: !!s.config.apiKey 
+    hasApiKey: !!s.config.apiKey,
+    maxDuration: s.config.maxDurationSeconds,
+    supportedFormats: s.config.supportedFormats
   })));
   console.log('[App] Selected services:', selectedServices);
 
@@ -55,10 +84,17 @@ const AppContent: React.FC = () => {
   const handleSettingsUpdated = async () => {
     try {
       // ServiceRegistryのAPIキー設定を更新
+      console.log('[App] Settings updated, updating service configs...');
       await serviceRegistry.updateServiceConfigs();
-      console.log('Service configurations updated successfully');
+      console.log('[App] Service configurations updated successfully');
+      
+      // 利用可能なサービス一覧を再取得して UI を更新
+      const services = container.getAvailableServices();
+      setAvailableServices(services);
+      console.log('[App] Available services refreshed after settings update:', 
+        services.map(s => s.config.displayName));
     } catch (error) {
-      console.error('Failed to update service configurations:', error);
+      console.error('[App] Failed to update service configurations:', error);
     }
   };
 

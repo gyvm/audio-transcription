@@ -1,6 +1,7 @@
 export interface APIKeyConfig {
   openai?: string;
   amivoice?: string;
+  'google-speech'?: string;
 }
 
 export interface APIKeyMetadata {
@@ -30,6 +31,7 @@ export interface APIKeyManagerState {
 export const API_KEY_SERVICES = {
   OPENAI: 'openai',
   AMIVOICE: 'amivoice',
+  GOOGLE_SPEECH: 'google-speech',
 } as const;
 
 export type APIKeyService = typeof API_KEY_SERVICES[keyof typeof API_KEY_SERVICES];
@@ -45,6 +47,12 @@ export const API_KEY_SERVICE_INFO = {
     displayName: 'AmiVoice',
     keyFormat: /^[A-Z0-9]+$/,
     testEndpoint: 'https://acp-api.amivoice.com/v1/nologging/recognize',
+    testMethod: 'POST',
+  },
+  [API_KEY_SERVICES.GOOGLE_SPEECH]: {
+    displayName: 'Google Speech',
+    keyFormat: /^AIza[a-zA-Z0-9_-]{35}$/,
+    testEndpoint: 'https://speech.googleapis.com/v1/speech:recognize',
     testMethod: 'POST',
   },
 } as const;

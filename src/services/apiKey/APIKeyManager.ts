@@ -106,6 +106,15 @@ export class APIKeyManager {
     if (env.amivoiceApiKey && env.amivoiceApiKey.length > 10) {
       config.amivoice = env.amivoiceApiKey;
     }
+    if (env.googleSpeechApiKey && env.googleSpeechApiKey.startsWith('AIza')) {
+      config['google-speech'] = env.googleSpeechApiKey;
+    }
+
+    console.log('[APIKeyManager] Environment API keys:', {
+      openai: !!config.openai,
+      amivoice: !!config.amivoice,
+      'google-speech': !!config['google-speech']
+    });
 
     // ユーザー設定のAPIキーを取得
     try {
@@ -116,13 +125,28 @@ export class APIKeyManager {
 
       if (storedConfig) {
         const userConfig = JSON.parse(storedConfig);
+        console.log('[APIKeyManager] User stored API keys found:', {
+          openai: !!userConfig.openai,
+          amivoice: !!userConfig.amivoice,
+          'google-speech': !!userConfig['google-speech']
+        });
+        
         // ユーザー設定を優先
         if (userConfig.openai) config.openai = userConfig.openai;
         if (userConfig.amivoice) config.amivoice = userConfig.amivoice;
+        if (userConfig['google-speech']) config['google-speech'] = userConfig['google-speech'];
+      } else {
+        console.log('[APIKeyManager] No stored user API keys found');
       }
     } catch (error) {
-      console.warn('Failed to retrieve user API keys:', error);
+      console.warn('[APIKeyManager] Failed to retrieve user API keys:', error);
     }
+
+    console.log('[APIKeyManager] Final API keys:', {
+      openai: !!config.openai,
+      amivoice: !!config.amivoice,
+      'google-speech': !!config['google-speech']
+    });
 
     return config;
   }
